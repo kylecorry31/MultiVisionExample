@@ -1,9 +1,14 @@
 package org.usfirst.frc.team5112.robot;
 
+import org.opencv.core.Mat;
+
 import com.kylecorry.frc.vision.MultiCameraSource;
 
+import edu.wpi.cscore.CvSink;
+import edu.wpi.cscore.MjpegServer;
 import edu.wpi.cscore.UsbCamera;
 import edu.wpi.cscore.VideoCamera;
+import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.IterativeRobot;
 
 /**
@@ -15,26 +20,29 @@ import edu.wpi.first.wpilibj.IterativeRobot;
  */
 public class Robot extends IterativeRobot {
 	
-	private MultiCameraSource camera;
+	private Mat frame;
+	private VideoCamera cam0, cam1;
+	private MjpegServer server;
+	private CvSink cvSink;
 
 	@Override
 	public void robotInit() {
-		camera = new MultiCameraSource();
 		
-		VideoCamera cam0 = new UsbCamera("PegCamera", 0);
-		VideoCamera cam1 = new UsbCamera("BoilerCamera", 1);
+		cam0 = new UsbCamera("PegCamera", 0);
+		cam1 = new UsbCamera("BoilerCamera", 1);
+
+		server = new MjpegServer("serve_USB Camera 0", 1181);
 		
-		camera.addCamera(cam0, "PegCamera");
-		camera.addCamera(cam1, "BoilerCamera");
+		cvSink = new CvSink("opencv_USB Camera 0");
+
+		switchToPegCamera();
 		
-		camera.switchToCamera("PegCamera");
-		camera.start();
-		
+		frame = new Mat();
 	}
 
 	@Override
 	public void autonomousInit() {
-		camera.switchToCamera("PegCamera");
+		switchToBoilerCamera();
 	}
 
 	@Override
@@ -44,7 +52,7 @@ public class Robot extends IterativeRobot {
 
 	@Override
 	public void teleopInit() {
-		camera.switchToCamera("BoilerCamera");
+		switchToPegCamera();
 	}
 	
 	@Override
@@ -54,5 +62,22 @@ public class Robot extends IterativeRobot {
 	@Override
 	public void testPeriodic() {
 	}
+	
+	public void switchToBoilerCamera(){
+		cvSink.setSource(cam1);
+		server.setSource(cam1);
+	}
+	
+	
+	public void switchToPegCamera(){
+		cvSink.setSource(cam0);
+		server.setSource(cam0);
+	}
+	
+	public Mat getImage(){
+		cvSink.grabFrame(frame);
+		return frame;
+	}
+	
 }
 
